@@ -1,0 +1,31 @@
+{
+  "name": "5-0-web-protection",
+  "version": "1.0",
+  "description": "Protects the user from potential cryptocurrency scam websites.",
+  "scripts": {
+    "build": "cross-env NODE_ENV=production webpack",
+    "dev": "npm run build -- --watch"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.9.3",
+    "@emotion/styled": "^11.9.3",
+    "@mui/material": "^5.9.0",
+    "matcher": "^5.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "webextension-polyfill": "^0.9.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.18.6",
+    "@babel/plugin-proposal-optional-chaining": "^7.18.6",
+    "@babel/preset-env": "^7.18.6",
+    "@babel/preset-react": "^7.18.6",
+    "babel-loader": "^8.2.5",
+    "copy-webpack-plugin": "^11.0.0",
+    "core-js": "^3.23.4",
+    "cross-env": "^7.0.3",
+    "ejs": "^3.1.8",
+    "webpack": "^5.73.0",
+    "webpack-cli": "^4.10.0"
+  }
+}
