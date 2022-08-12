@@ -10,7 +10,6 @@ class MessageController {
         });
     }
 
-
     sendRuntimeMessage(data) {
         return new Promise(resolve => {
             browser.runtime.sendMessage(data).then(results => {

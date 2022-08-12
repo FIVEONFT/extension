@@ -1,25 +1,39 @@
 const webpack = require('webpack');
 const { version } = require('./package.json');
 const CopyPlugin = require('copy-webpack-plugin');
-const ejs = require('ejs');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 const config = {
     mode: process.env.NODE_ENV,
     context: __dirname + '/src',
     entry: {
         'background': './background/background.js',
-        'content': './content/content.js',
-        // 'popup/popup': './popup/popup.js'
+        'content': './content/content.js'
     },
     output: {
         path: __dirname + '/dist',
         filename: '[name].js'
     },
     resolve: {
-        extensions: ['.js']
+        extensions: ['.js'],
+        fallback: {
+            'fs': false,
+            'tls': false,
+            'net': false,
+            'path': false,
+            'zlib': false,
+            'http': false,
+            'https': false,
+            'stream': false,
+            'crypto': false
+        }
     },
     module: {
         rules: [
+            {
+                test: /\.css$/,
+                use: [MiniCssExtractPlugin.loader, 'css-loader']
+            },
             {
                 test: /\.js?$/,
                 exclude: /node_modules/,
@@ -31,6 +45,18 @@ const config = {
                         envName: process.env.NODE_ENV
                     }
                 }
+            },
+            {
+                test: /\.(woff(2)?|ttf|eot|svg)(\?v=\d+\.\d+\.\d+)?$/,
+                use: [
+                    {
+                        loader: 'file-loader',
+                        options: {
+                            name: '[name].[ext]',
+                            outputPath: 'fonts/'
+                        }
+                    }
+                ]
             }
         ]
     },
@@ -38,10 +64,12 @@ const config = {
         new webpack.DefinePlugin({
             global: 'window'
         }),
+        new MiniCssExtractPlugin({
+            filename: '[name].css'
+        }),
         new CopyPlugin({
             patterns: [
-                // { from: 'icons', to: 'icons', ignore: ['icon.xcf'] },
-                // { from: 'popup/popup.html', to: 'popup/popup.html', transform: transformHtml },
+                { from: 'icons', to: 'icons' },
                 {
                     from: 'manifest.json',
                     to: 'manifest.json',
@@ -50,7 +78,9 @@ const config = {
                         jsonContent.version = version;
 
                         if (config.mode === 'development') {
-                            jsonContent['content_security_policy'] = "script-src 'self' 'unsafe-eval'; object-src 'self'";
+                            jsonContent['content_security_policy'] = {
+                                "extension_page": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+                            };
                         }
 
                         return JSON.stringify(jsonContent, null, 2);
@@ -61,6 +91,10 @@ const config = {
     ]
 };
 
+if (process.env.NODE_ENV === 'development') {
+    config.devtool = 'cheap-module-source-map';
+}
+
 if (config.mode === 'production') {
     config.plugins = (config.plugins || []).concat([
         new webpack.DefinePlugin({
@@ -70,20 +104,5 @@ if (config.mode === 'production') {
         })
     ]);
 }
-
-// not working with webpack 5
-// if (process.env.HMR === 'true') {
-//     config.plugins = (config.plugins || []).concat([
-//         new ExtensionReloader({
-//             manifest: __dirname + '/src/manifest.json'
-//         })
-//     ]);
-// }
-
-// function transformHtml(content) {
-//     return ejs.render(content.toString(), {
-//         ...process.env
-//     });
-// }
 
 module.exports = config;

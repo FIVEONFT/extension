@@ -1,6 +1,20 @@
 import browser from 'webextension-polyfill';
 
+export const storageDefaults = {
+    ignored: [],
+    license: '',
+    licenseExpiresTimestamp: '',
+    lastLicenseRefresh: 0
+};
+
 class StorageController {
+
+    async initDefaults() {
+        for (let key in storageDefaults) {
+            const exists = await this.get(key);
+            if (!exists) this.set(key, storageDefaults[key]);
+        }
+    }
 
     set(key, val) {
         const obj = {};

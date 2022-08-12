@@ -1,41 +1,10 @@
-import { createRoot } from 'react-dom/client';
+import * as ReactDOMClient from 'react-dom/client';
 import WebsiteWarning from '../components/content/WebsiteWarning.js';
 import React from 'react';
 import createCache from '@emotion/cache';
 import { CacheProvider } from '@emotion/react';
-import { createTheme } from '@mui/material';
 import { ThemeProvider, CssBaseline } from '@mui/material';
-import { red } from '@mui/material/colors';
-
-const theme = createTheme({
-    palette: {
-        mode: 'dark',
-        primary: {
-            light: red[50],
-            dark: red[100],
-            main: red[50],
-            contrastText: red[50]
-        },
-        secondary: {
-            light: red[600],
-            dark: red[900],
-            main: red[800],
-            contrastText: red[800]
-        }
-    },
-    typography: {
-        htmlFontSize: 12
-    },
-    components: {
-        MuiButton: {
-            styleOverrides: {
-                outlined: {
-                    textTransform: 'none'
-                }
-            }
-        }
-    }
-});
+import theme from '../theme/theme.js';
 
 class WarningRenderController {
 
@@ -59,7 +28,7 @@ class WarningRenderController {
                 container: emotionRoot
             });
 
-            const root = createRoot(reactDiv);
+            const root = ReactDOMClient.createRoot(reactDiv);
             root.render(<CacheProvider
                 value={cache}>
                 <ThemeProvider
