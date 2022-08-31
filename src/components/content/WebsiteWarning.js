@@ -2,7 +2,7 @@ import { Box, Typography, Button, Fade, Card } from '@mui/material';
 import React, { useCallback, useEffect, useState } from 'react';
 import MessageController from '../../controllers/MessageController.js';
 
-function WebsiteWarning({ id, website, notes }) {
+function WebsiteWarning({ id, origin, website, notes }) {
 
     const [open, setOpen] = useState(false);
 
@@ -10,18 +10,26 @@ function WebsiteWarning({ id, website, notes }) {
         setOpen(true);
     }, []);
 
-    const handleClose = useCallback(() => {
-        setOpen(false);
+    const handleClose = useCallback(async () => {
+        // setOpen(false);
+        await MessageController.sendRuntimeMessage({
+            message: 'IGNORE_WEBSITE_ONCE',
+            data: {
+                id
+            }
+        });
+        window.location.href = origin;
     }, []);
 
     const handleCloseAndIgnore = useCallback(async () => {
-        setOpen(false);
+        // setOpen(false);
         await MessageController.sendRuntimeMessage({
             message: 'IGNORE_WEBSITE',
             data: {
                 id
             }
         });
+        window.location.href = origin;
     }, [id]);
 
     return <Fade
@@ -64,24 +72,24 @@ function WebsiteWarning({ id, website, notes }) {
                     This website has been reported as potentially harmful.
                 </Typography>
                 {!!notes &&
-                <Card
-                    variant="outlined"
-                    sx={{
-                        mt: 2,
-                        width: {
-                            xs: 1,
-                            sm: 520
-                        },
-                        maxWidth: '100%',
-                        backgroundColor: 'secondary.dark',
-                        textAlign: 'left',
-                        p: 2
-                    }}>
-                    <Typography
-                        variant="body2">
-                        {notes}
-                    </Typography>
-                </Card>}
+                    <Card
+                        variant="outlined"
+                        sx={{
+                            mt: 2,
+                            width: {
+                                xs: 1,
+                                sm: 520
+                            },
+                            maxWidth: '100%',
+                            backgroundColor: 'secondary.dark',
+                            textAlign: 'left',
+                            p: 2
+                        }}>
+                        <Typography
+                            variant="body2">
+                            {notes}
+                        </Typography>
+                    </Card>}
                 <Box
                     sx={{
                         display: 'flex',

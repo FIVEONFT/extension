@@ -11,6 +11,7 @@ class WebsiteCheckController {
         this.tab = tab;
         this.reports = [];
         this.ignored = [];
+        this.ignoredOnce = [];
     }
 
     formatUrl(str) {
@@ -32,6 +33,7 @@ class WebsiteCheckController {
 
     async loadIgnored() {
         this.ignored = await StorageController.get('ignored');
+        this.ignoredOnce = await StorageController.get('ignoredOnce');
     }
 
     async loadUrl() {
@@ -51,6 +53,7 @@ class WebsiteCheckController {
 
     async performCheck() {
         await this.loadUrl();
+        if (this.url.startsWith('chrome-extension://')) return;
         if (config.urls.verifyHolderFormatted.find(item => this.url.startsWith(item))) {
             await MessageController.sendTabMessage(this.tab.id, {
                 message: 'VERIFY_HOLDER',
@@ -65,10 +68,17 @@ class WebsiteCheckController {
         if (!this.reports?.length) return;
         for (let i = 0; i < this.reports.length; i++) {
             if (this.ignored.includes(this.reports[i].id)) continue;
+            if (this.ignoredOnce.includes(this.reports[i].id)) {
+                StorageController.set('ignoredOnce', this.ignoredOnce.filter(item => item !== this.reports[i].id));
+                continue;
+            }
             if (isMatch(this.url, this.padAsterisks(this.reports[i].website))) {
                 await MessageController.sendTabMessage(this.tab.id, {
                     message: 'RENDER_WARNING',
-                    data: this.reports[i]
+                    data: {
+                        ...this.reports[i],
+                        redirectURL: browser.runtime.getURL(`blocked/blocked.html`)
+                    }
                 });
                 break;
             }

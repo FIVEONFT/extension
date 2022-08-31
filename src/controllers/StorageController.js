@@ -2,9 +2,11 @@ import browser from 'webextension-polyfill';
 
 export const storageDefaults = {
     ignored: [],
+    ignoredOnce: [],
     license: '',
     licenseExpiresTimestamp: '',
-    lastLicenseRefresh: 0
+    lastLicenseRefresh: 0,
+    lastOpenVerifyHolderTab: 0
 };
 
 class StorageController {

@@ -2,13 +2,21 @@ const webpack = require('webpack');
 const { version } = require('./package.json');
 const CopyPlugin = require('copy-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const ejs = require('ejs');
+
+function transformHtml(content) {
+    return ejs.render(content.toString(), {
+        ...process.env
+    });
+}
 
 const config = {
     mode: process.env.NODE_ENV,
     context: __dirname + '/src',
     entry: {
         'background': './background/background.js',
-        'content': './content/content.js'
+        'content': './content/content.js',
+        'blocked/blocked': './blocked/blocked.js'
     },
     output: {
         path: __dirname + '/dist',
@@ -69,6 +77,7 @@ const config = {
         }),
         new CopyPlugin({
             patterns: [
+                { from: 'blocked/blocked.html', to: 'blocked/blocked.html', transform: transformHtml },
                 { from: 'icons', to: 'icons' },
                 {
                     from: 'manifest.json',

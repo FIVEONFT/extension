@@ -14,13 +14,17 @@ class WarningRenderController {
 
     render() {
         const renderWarning = () => {
-            const shadowHost = document.createElement('div');
-            document.body.appendChild(shadowHost);
-            const shadowDOM = shadowHost.attachShadow({ mode: 'open' });
-            const reactDiv = document.createElement('div');
+            // const shadowHost = document.createElement('div');
+            // document.body.appendChild(shadowHost);
+            // const shadowDOM = shadowHost.attachShadow({ mode: 'open' });
+            // const reactDiv = document.createElement('div');
+            // const emotionRoot = document.createElement('style');
+            // shadowDOM.appendChild(reactDiv);
+            // shadowDOM.appendChild(emotionRoot);
+
+            const reactDiv = document.getElementById('root');
             const emotionRoot = document.createElement('style');
-            shadowDOM.appendChild(reactDiv);
-            shadowDOM.appendChild(emotionRoot);
+            document.body.appendChild(emotionRoot);
 
             const cache = createCache({
                 key: 'css',

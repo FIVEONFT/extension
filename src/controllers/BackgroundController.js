@@ -4,6 +4,11 @@ import browser from 'webextension-polyfill';
 import MessageController from './MessageController.js';
 import config from '../config/config.js';
 
+const licenseRefreshFreq = {
+    daily: 86400000, // 1d
+    hourly: 7200000 // 2h
+};
+
 class BackgroundController {
 
     constructor() {
@@ -19,18 +24,28 @@ class BackgroundController {
         MessageController.addMessageListener(this.onMessage);
     }
 
-    openVerifyHolderTab() {
-        browser.tabs.create({ url: config.urls.verifyHolder });
+    async openVerifyHolderTab() {
+        const lastOpenVerifyHolderTab = await StorageController.get('lastOpenVerifyHolderTab');
+        if ((lastOpenVerifyHolderTab + 10800000) < new Date().getTime()) { // 3h
+            StorageController.set('lastOpenVerifyHolderTab', new Date().getTime());
+            browser.tabs.create({ url: config.urls.verifyHolder });
+        }
     }
 
     async onInstall() {
         await StorageController.initDefaults();
-        this.openVerifyHolderTab();
+        await this.openVerifyHolderTab();
     }
 
     async onStartup() {
+        await this.triggerLicenseCheck({ freq: 'daily' });
+    }
+
+    async triggerLicenseCheck({ freq = 'daily' }) {
+        console.log(`[BackgroundController] license check: ${freq}`);
         const lastLicenseRefresh = await StorageController.get('lastLicenseRefresh');
-        if ((lastLicenseRefresh + 86400000) < new Date().getTime()) {
+        if ((lastLicenseRefresh + licenseRefreshFreq[freq]) < new Date().getTime()) {
+            console.log(`[BackgroundController] license expired`);
             StorageController.set('lastLicenseRefresh', new Date().getTime());
             const license = await StorageController.get('license');
             let licenseResJSON;
@@ -46,8 +61,10 @@ class BackgroundController {
                 // ...
             }
             if (!licenseResJSON?.success || !licenseResJSON?.isAllowed) {
-                this.openVerifyHolderTab();
+                console.log(`[BackgroundController] license open holder tab`)
+                await this.openVerifyHolderTab();
             } else {
+                console.log(`[BackgroundController] license updated`)
                 StorageController.set('license', licenseResJSON.license);
                 StorageController.set('licenseExpiresTimestamp', licenseResJSON.expiresTimestamp);
             }
@@ -58,6 +75,7 @@ class BackgroundController {
         // console.log('[BackgroundController] onTabUpdated', changeInfo);
         switch (changeInfo.status) {
             case 'complete':
+                await this.triggerLicenseCheck({ freq: 'hourly' });
                 const _WebsiteCheckController = new WebsiteCheckController(tab);
                 await _WebsiteCheckController.performCheck();
                 break;
@@ -73,6 +91,11 @@ class BackgroundController {
                 const ignoreId = data.data.id;
                 const ignoredExists = await StorageController.get('ignored');
                 StorageController.set('ignored', [...ignoredExists, ignoreId]);
+                break;
+            case 'IGNORE_WEBSITE_ONCE':
+                const ignoreIdOnce = data.data.id;
+                const ignoredExistsOnce = await StorageController.get('ignoredOnce');
+                StorageController.set('ignoredOnce', [...ignoredExistsOnce, ignoreIdOnce]);
                 break;
             case 'UPDATE_LICENSE':
                 StorageController.set('license', data.data.license);
