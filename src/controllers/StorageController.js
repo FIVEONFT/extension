@@ -3,9 +3,11 @@ import browser from 'webextension-polyfill';
 export const storageDefaults = {
     ignored: [],
     ignoredOnce: [],
+    safeSites: [],
     license: '',
     licenseExpiresTimestamp: '',
     lastLicenseRefresh: 0,
+    lastSafeSitesRefresh: 0,
     lastOpenVerifyHolderTab: 0
 };
 

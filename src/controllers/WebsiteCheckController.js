@@ -1,13 +1,16 @@
 import { isMatch } from 'matcher';
-import MessageController from './MessageController.js';
 import browser from 'webextension-polyfill';
+import MessageController from './MessageController.js';
 import StorageController from './StorageController.js';
+import IconController from './IconController.js';
 import config from '../config/config.js';
+import psl from 'psl';
 
 class WebsiteCheckController {
 
     constructor(tab) {
         this.url = '';
+        this.rawUrl = '';
         this.tab = tab;
         this.reports = [];
         this.ignored = [];
@@ -37,7 +40,8 @@ class WebsiteCheckController {
     }
 
     async loadUrl() {
-        this.url = this.formatUrl(await this.getTabUrl(this.tab.id));
+        this.rawUrl = await this.getTabUrl(this.tab.id);
+        this.url = this.formatUrl(this.rawUrl);
     }
 
     async loadReports() {
@@ -49,6 +53,22 @@ class WebsiteCheckController {
             // ...
         }
         this.reports = resJSON?.data || [];
+    }
+
+    async checkSafeSite() {
+        const safeSites = await StorageController.get('safeSites') || [];
+        if (Array.isArray(safeSites) && !!safeSites.length) {
+            const parsed = psl.parse(new URL(this.rawUrl).hostname);
+            console.log(parsed);
+            const domainOnly = parsed.domain;
+            console.log(domainOnly);
+            if (safeSites.includes(domainOnly)) {
+                console.log('url is safe');
+                await IconController.setSafeIcon(this.tab.id);
+            } else {
+                await IconController.setDefaultIcon(this.tab.id);
+            }
+        }
     }
 
     async performCheck() {
@@ -64,6 +84,7 @@ class WebsiteCheckController {
             });
             return;
         }
+        await this.checkSafeSite();
         await Promise.all([this.loadReports(), this.loadIgnored()]);
         if (!this.reports?.length) return;
         for (let i = 0; i < this.reports.length; i++) {
@@ -80,6 +101,7 @@ class WebsiteCheckController {
                         redirectURL: browser.runtime.getURL(`blocked/blocked.html`)
                     }
                 });
+                await IconController.setDefaultIcon(this.tab.id);
                 break;
             }
         }

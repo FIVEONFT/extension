@@ -39,5 +39,6 @@
   "permissions": [
     "storage",
     "tabs"
-  ]
+  ],
+  "action": {}
 }

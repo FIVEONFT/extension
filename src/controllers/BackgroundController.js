@@ -4,6 +4,8 @@ import browser from 'webextension-polyfill';
 import MessageController from './MessageController.js';
 import config from '../config/config.js';
 
+const safeSiteRefreshFreq = 86400000; // 1d
+
 const licenseRefreshFreq = {
     daily: 86400000, // 1d
     hourly: 7200000 // 2h
@@ -39,6 +41,29 @@ class BackgroundController {
 
     async onStartup() {
         await this.triggerLicenseCheck({ freq: 'daily' });
+        await this.updateSafeSites();
+    }
+
+    async updateSafeSites() {
+        console.log(`[BackgroundController] update safe sites`);
+        const lastSafeSitesRefresh = await StorageController.get('lastSafeSitesRefresh');
+        if ((lastSafeSitesRefresh + safeSiteRefreshFreq) < new Date().getTime()) {
+            console.log(`[BackgroundController] safe sites expired, refreshing`);
+            StorageController.set('lastSafeSitesRefresh', new Date().getTime());
+            let safeSitesJSON;
+            try {
+                const safeSites = await fetch(config.urls.safeSitesAPI, {
+                    method: 'GET'
+                });
+                safeSitesJSON = await safeSites.json();
+            } catch (e) {
+                // ...
+            }
+            if (!!safeSitesJSON?.success) {
+                console.log(`[BackgroundController] retrieved safe sites list`);
+                StorageController.set('safeSites', safeSitesJSON.data);
+            }
+        }
     }
 
     async triggerLicenseCheck({ freq = 'daily' }) {
@@ -61,10 +86,10 @@ class BackgroundController {
                 // ...
             }
             if (!licenseResJSON?.success || !licenseResJSON?.isAllowed) {
-                console.log(`[BackgroundController] license open holder tab`)
+                console.log(`[BackgroundController] license open holder tab`);
                 await this.openVerifyHolderTab();
             } else {
-                console.log(`[BackgroundController] license updated`)
+                console.log(`[BackgroundController] license updated`);
                 StorageController.set('license', licenseResJSON.license);
                 StorageController.set('licenseExpiresTimestamp', licenseResJSON.expiresTimestamp);
             }
