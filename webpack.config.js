@@ -14,6 +14,7 @@ const config = {
     mode: process.env.NODE_ENV,
     context: __dirname + '/src',
     entry: {
+        'popup/popup': './popup/popup.js',
         'background': './background/background.js',
         'content': './content/content.js',
         'blocked/blocked': './blocked/blocked.js'
@@ -77,6 +78,7 @@ const config = {
         }),
         new CopyPlugin({
             patterns: [
+                { from: 'popup/popup.html', to: 'popup/popup.html', transform: transformHtml },
                 { from: 'blocked/blocked.html', to: 'blocked/blocked.html', transform: transformHtml },
                 { from: 'icons', to: 'icons' },
                 {

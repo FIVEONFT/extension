@@ -57,7 +57,10 @@ class WebsiteCheckController {
 
     async checkSafeSite() {
         const safeSites = await StorageController.get('safeSites') || [];
-        if (Array.isArray(safeSites) && !!safeSites.length) {
+        const warnSites = await StorageController.get('warnSites') || [];
+        console.log('safeSites', safeSites);
+        console.log('warnSites', warnSites);
+        if ((Array.isArray(safeSites) && !!safeSites.length) || (Array.isArray(warnSites) && !!warnSites.length)) {
             const parsed = psl.parse(new URL(this.rawUrl).hostname);
             console.log(parsed);
             const domainOnly = parsed.domain;
@@ -65,6 +68,9 @@ class WebsiteCheckController {
             if (safeSites.includes(domainOnly)) {
                 console.log('url is safe');
                 await IconController.setSafeIcon(this.tab.id);
+            } else if (warnSites.includes(domainOnly)) {
+                console.log('url is warn');
+                await IconController.setWarnIcon(this.tab.id);
             } else {
                 await IconController.setDefaultIcon(this.tab.id);
             }

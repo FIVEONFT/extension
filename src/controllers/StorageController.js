@@ -4,7 +4,10 @@ export const storageDefaults = {
     ignored: [],
     ignoredOnce: [],
     safeSites: [],
+    warnSites: [],
     license: '',
+    roleId: '',
+    user: {},
     licenseExpiresTimestamp: '',
     lastLicenseRefresh: 0,
     lastSafeSitesRefresh: 0,
@@ -12,6 +15,19 @@ export const storageDefaults = {
 };
 
 class StorageController {
+
+    resetStorage() {
+        for (let key in storageDefaults) {
+            this.set(key, storageDefaults[key]);
+        }
+    }
+
+    async viewStorage() {
+        for (let key in storageDefaults) {
+            const exists = await this.get(key);
+            console.log(key, exists);
+        }
+    }
 
     async initDefaults() {
         for (let key in storageDefaults) {

@@ -81,7 +81,7 @@ function WebsiteWarning({ id, origin, website, notes }) {
                                 sm: 520
                             },
                             maxWidth: '100%',
-                            backgroundColor: 'secondary.dark',
+                            backgroundColor: 'secondary.commet',
                             textAlign: 'left',
                             p: 2
                         }}>

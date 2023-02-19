@@ -23,7 +23,7 @@ class BackgroundController {
         browser.tabs.onUpdated.addListener((...props) => {
             return this.onTabUpdated(...props);
         });
-        MessageController.addMessageListener(this.onMessage);
+        MessageController.addMessageListener((...params) => this.onMessage(...params));
     }
 
     async openVerifyHolderTab() {
@@ -45,23 +45,37 @@ class BackgroundController {
     }
 
     async updateSafeSites() {
-        console.log(`[BackgroundController] update safe sites`);
-        const lastSafeSitesRefresh = await StorageController.get('lastSafeSitesRefresh');
+        console.log(`[BackgroundController] update safe/warn sites`);
+        const lastSafeSitesRefresh = await StorageController.get('lastSafeSitesRefresh') || 0;
+        const license = await StorageController.get('license');
+        if (!license) {
+            console.log(`[BackgroundController] license not found`);
+            return;
+        }
         if ((lastSafeSitesRefresh + safeSiteRefreshFreq) < new Date().getTime()) {
             console.log(`[BackgroundController] safe sites expired, refreshing`);
             StorageController.set('lastSafeSitesRefresh', new Date().getTime());
-            let safeSitesJSON;
-            try {
-                const safeSites = await fetch(config.urls.safeSitesAPI, {
-                    method: 'GET'
-                });
-                safeSitesJSON = await safeSites.json();
-            } catch (e) {
-                // ...
-            }
-            if (!!safeSitesJSON?.success) {
-                console.log(`[BackgroundController] retrieved safe sites list`);
-                StorageController.set('safeSites', safeSitesJSON.data);
+
+            const sitesConf = [
+                { api: config.urls.safeSitesAPI, storageName: 'safeSites' },
+                { api: config.urls.warnSitesAPI, storageName: 'warnSites' }
+            ];
+
+            for (let i = 0; i < sitesConf.length; i++) {
+                const thisConf = sitesConf[i];
+                let safeSitesJSON;
+                try {
+                    const safeSites = await fetch(`${thisConf.api}?license=${license}`, {
+                        method: 'GET'
+                    });
+                    safeSitesJSON = await safeSites.json();
+                } catch (e) {
+                    // ...
+                }
+                if (!!safeSitesJSON?.success) {
+                    console.log(`[BackgroundController] retrieved ${thisConf.storageName} sites list`);
+                    StorageController.set(thisConf.storageName, safeSitesJSON.data);
+                }
             }
         }
     }
@@ -85,13 +99,16 @@ class BackgroundController {
             } catch (e) {
                 // ...
             }
-            if (!licenseResJSON?.success || !licenseResJSON?.isAllowed) {
+            if (!licenseResJSON?.success) {
                 console.log(`[BackgroundController] license open holder tab`);
                 await this.openVerifyHolderTab();
             } else {
                 console.log(`[BackgroundController] license updated`);
                 StorageController.set('license', licenseResJSON.license);
+                StorageController.set('roleId', licenseResJSON.roleId);
+                StorageController.set('user', licenseResJSON.user);
                 StorageController.set('licenseExpiresTimestamp', licenseResJSON.expiresTimestamp);
+                await this.updateSafeSites();
             }
         }
     }
@@ -109,9 +126,52 @@ class BackgroundController {
         }
     }
 
+    async processCurrentTab() {
+        const currentTab = await browser.tabs.query({ active: true, currentWindow: true });
+        if (currentTab.length === 0) return {};
+        const _WebsiteCheckController = new WebsiteCheckController(currentTab[0]);
+        await _WebsiteCheckController.loadUrl();
+        return _WebsiteCheckController;
+    }
+
     async onMessage(data) {
         // console.log('[BackgroundController] onMessage', data);
         switch (data.message) {
+            case 'DEV_RESET':
+                await StorageController.resetStorage();
+                console.log(`[BackgroundController] dev reset done`);
+                break;
+            case 'DEV_VIEW_STORAGE':
+                await StorageController.viewStorage();
+                console.log(`[BackgroundController] dev view storage done`);
+                break;
+            case 'DEV_GET_SAFE_SITES':
+                StorageController.set('lastSafeSitesRefresh', 0);
+                await this.updateSafeSites();
+                console.log(`[BackgroundController] update safe sites done`);
+                break;
+            case 'GET_POPUP_DATA':
+                const currentTab = await this.processCurrentTab();
+                return {
+                    currentTab,
+                    user: await StorageController.get('user'),
+                    roleId: await StorageController.get('roleId')
+                };
+            case 'SUBMIT_REPORT':
+                console.log('here');
+                const license = await StorageController.get('license');
+                const submitReport = await fetch(config.urls.submitReportExt, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        license,
+                        url: data.data.url,
+                        notes: data.data.notes
+                    })
+                });
+                const submitReportJSON = await submitReport.json();
+                return {
+                    ...submitReportJSON
+                };
             case 'IGNORE_WEBSITE':
                 const ignoreId = data.data.id;
                 const ignoredExists = await StorageController.get('ignored');
@@ -124,6 +184,8 @@ class BackgroundController {
                 break;
             case 'UPDATE_LICENSE':
                 StorageController.set('license', data.data.license);
+                StorageController.set('user', data.data.user);
+                StorageController.set('roleId', data.data.roleId);
                 StorageController.set('licenseExpiresTimestamp', data.data.expiresTimestamp);
                 StorageController.set('lastLicenseRefresh', new Date().getTime());
                 break;
